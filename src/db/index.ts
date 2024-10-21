@@ -9,6 +9,7 @@ const pool = new Pool({
   host,
   port,
   database,
+  ssl: process.env.NODE_ENV === 'production' ? true : false,
 });
 
 export const query = async (text: string, params: any[]) => {

@@ -12,7 +12,7 @@
     "start": "node build/server.js",
     "db:setup": "bash setup.sh",
     "db:seed": "ts-node-dev src/seedlings/seed.ts",
-    "migrate": "source .env; DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB} node-pg-migrate"
+    "migrate": "source .env; DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?ssl=true node-pg-migrate"
   },
   "prettier": {
     "singleQuote": true,
