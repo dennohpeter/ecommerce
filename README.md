@@ -25,6 +25,18 @@ yarn migrate create create-users-table
 yarn migrate create create-products-table
 ```
 
+#### Make migrations
+
+```bash
+yarn migrate up
+```
+
+#### Rollback migrations
+
+```bash
+yarn migrate down
+```
+
 #### Create a new seed
 
 ```bash
@@ -41,19 +53,7 @@ yarn seed create create-products-seed
 #### Run seeds
 
 ```bash
-yarn seed run
-```
-
-#### Rollback migrations
-
-```bash
-yarn migrate down
-```
-
-#### Make migrations
-
-```bash
-yarn migrate up
+yarn db:seed
 ```
 
 #### Run the server
