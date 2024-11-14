@@ -1,9 +1,12 @@
+import { faker } from '@faker-js/faker';
 import { Request, Response, Router } from 'express';
 import { check, validationResult } from 'express-validator';
+import { v4 } from 'uuid';
 import { query } from '../db';
 
 const router = Router();
 
+// get all products or filter by price and category
 router.get(
   '/',
   [
@@ -53,6 +56,7 @@ router.get(
   },
 );
 
+// get a single product
 router.get('/:id', async (req, res) => {
   const { rows: product } = await query(
     'SELECT * FROM products WHERE id = $1',
@@ -61,5 +65,285 @@ router.get('/:id', async (req, res) => {
 
   res.json({ data: { product }, success: true });
 });
+
+// create a new product
+// FIX: id + as slug(from title) + category_id instead of uuid v4
+router.post(
+  '/',
+  [
+    check('title', 'Title is required')
+      .not()
+      .isEmpty()
+      .isLength({ min: 3 })
+      .withMessage('Title must be at least 5 characters'),
+    check('picture').optional().isURL().withMessage('Invalid picture URL'),
+    check('summary')
+      .optional()
+      .isString()
+      .withMessage('Summary must be a string'),
+    check('description')
+      .optional()
+      .isString()
+      .withMessage('Description must be a string'),
+    check('quantity')
+      .optional()
+      .isNumeric()
+      .withMessage('Quantity must be a number'),
+    check('price', 'Price is required')
+      .not()
+      .isEmpty()
+      .isNumeric()
+      .withMessage('Price must be a number'),
+    check('category_id', 'Category Id is required')
+      .not()
+      .isEmpty()
+      .isUUID()
+      .withMessage('Invalid category_id'),
+    check('tags')
+      .optional()
+      .isArray()
+      .withMessage('Tags must be an array of strings'),
+  ],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      let errorMessages = errors.array().map((error) => error.msg);
+      res.status(400).json({
+        data: { error: errorMessages[0] },
+        success: false,
+      });
+      return;
+    }
+
+    let {
+      title,
+      picture,
+      summary,
+      description,
+      quantity,
+      price,
+      category_id,
+      tags,
+    } = req.body;
+
+    picture =
+      picture || faker.image.urlPicsumPhotos({ width: 640, height: 480 });
+    summary = summary || faker.commerce.productAdjective();
+    description = description || faker.commerce.productDescription();
+    quantity = quantity || faker.number.int({ min: 1, max: 100 });
+    price = price || faker.commerce.price({ min: 1, max: 1000 });
+
+    const { rows: category } = await query(
+      'SELECT * FROM categories WHERE id = $1',
+      [category_id],
+    );
+
+    try {
+      if (category.length === 0) {
+        res.status(400).json({
+          data: { error: 'Invalid category_id' },
+          success: false,
+        });
+        return;
+      }
+    } catch (error) {
+      console.error({ error });
+      res.status(400).json({
+        data: { error: 'Invalid category_id' },
+        success: false,
+      });
+      return;
+    }
+
+    tags = tags || [faker.commerce.productMaterial()];
+
+    const id = v4();
+
+    try {
+      const { rows: product } = await query(
+        'INSERT INTO products (id, title, picture, summary, description, quantity, price, category_id, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+        [
+          id,
+          title,
+          picture,
+          summary,
+          description,
+          quantity,
+          price,
+          category_id,
+          tags,
+        ],
+      );
+
+      res.json({ data: { product }, success: true });
+    } catch (error) {
+      console.error({ error });
+      res.status(400).json({
+        data: { error: 'Failed to create product' },
+        success: false,
+      });
+    }
+  },
+);
+
+// update a product
+router.put(
+  '/:id',
+  [
+    check('id', 'Invalid product id').isUUID(),
+    check('title', 'Title is required')
+      .optional()
+      .isLength({ min: 3 })
+      .withMessage('Title must be at least 5 characters'),
+    check('picture').optional().isURL().withMessage('Invalid picture URL'),
+    check('summary')
+      .optional()
+      .isString()
+      .withMessage('Summary must be a string'),
+    check('description')
+      .optional()
+      .isString()
+      .withMessage('Description must be a string'),
+    check('quantity')
+      .optional()
+      .isNumeric()
+      .withMessage('Quantity must be a number'),
+    check('price', 'Price is required')
+      .optional()
+      .isNumeric()
+      .withMessage('Price must be a number'),
+    check('category_id', 'Category is required')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid category_id'),
+    check('tags')
+      .optional()
+      .isArray()
+      .withMessage('Tags must be an array of strings'),
+  ],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      let errorMessages = errors.array().map((error) => error.msg);
+      res.status(400).json({
+        data: { error: errorMessages[0] },
+        success: false,
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    let {
+      title,
+      picture,
+      summary,
+      description,
+      quantity,
+      price,
+      category_id,
+      tags,
+    } = req.body;
+
+    if (category_id) {
+      try {
+        const { rows: category } = await query(
+          'SELECT * FROM categories WHERE id = $1',
+          [category_id],
+        );
+
+        if (category.length === 0) {
+          res.status(400).json({
+            data: { error: 'Invalid category_id' },
+            success: false,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error({ error });
+        res.status(400).json({
+          data: { error: 'Invalid category_id' },
+          success: false,
+        });
+        return;
+      }
+    }
+
+    let update: Record<string, any> = {};
+
+    if (title) update.title = title;
+    if (picture) update.picture = picture;
+    if (summary) update.summary = summary;
+    if (description) update.description = description;
+    if (quantity) update.quantity = quantity;
+    if (price) update.price = price;
+    if (category_id) update.category_id = category_id;
+    if (tags) update.tags = tags;
+
+    const updateCount = Object.keys(update).length;
+
+    if (updateCount === 0) {
+      res.status(400).json({
+        data: { error: 'No fields to update' },
+        success: false,
+      });
+      return;
+    }
+
+    try {
+      const { rows: product } = await query(
+        `UPDATE products SET ${Object.keys(update)
+          .map((col, colIndex) => `${col} = $${colIndex + 1}`)
+          .join(', ')} WHERE id = $${updateCount + 1} RETURNING *`,
+        [...Object.values(update), id],
+      );
+
+      res.json({ data: { product }, success: true });
+    } catch (error) {
+      console.error({ error });
+      res.status(400).json({
+        data: { error: 'Failed to update product' },
+        success: false,
+      });
+    }
+  },
+);
+
+// delete a product
+router.delete(
+  '/:id',
+  [check('id', 'Invalid product id').isUUID()],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      let errorMessages = errors.array().map((error) => error.msg);
+      res.status(400).json({
+        data: { error: errorMessages[0] },
+        success: false,
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    try {
+      const { rows: product } = await query(
+        'DELETE FROM products WHERE id = $1 RETURNING *',
+        [id],
+      );
+
+      res.json({ data: { product }, success: true });
+    } catch (error) {
+      console.error({ error });
+      res.status(400).json({
+        data: { error: 'Failed to delete product' },
+        success: false,
+      });
+    }
+  },
+);
 
 module.exports = router;
