@@ -42,12 +42,6 @@ yarn migrate down
 ```bash
 
 yarn seed create <seed-name>
-
-# Example
-yarn seed create create-users-seed
-
-# Example
-yarn seed create create-products-seed
 ```
 
 #### Run seeds

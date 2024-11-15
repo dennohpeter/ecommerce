@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
-import { check, validationResult } from 'express-validator';
+import { check } from 'express-validator';
 import { query } from '../db';
+import { validationResult } from '../middleware';
 
 const router = Router();
 
@@ -13,18 +14,8 @@ router.get('/', async (_, res) => {
 router.get(
   '/:id',
   [check('id', 'Invalid category id').isUUID()],
+  validationResult,
   async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      let errorMessages = errors.array().map((error) => error.msg);
-      res.status(400).json({
-        data: { error: errorMessages[0] },
-        success: false,
-      });
-      return;
-    }
-
     const { rows: product } = await query(
       'SELECT * FROM categories WHERE id = $1',
       [req.params.id],

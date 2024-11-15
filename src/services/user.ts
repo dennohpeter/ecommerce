@@ -1,23 +1,11 @@
 import { hash, verify } from 'argon2';
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { sign } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import { query } from '../db';
 
 export const register = async (req: Request, res: Response) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    let errorMessages = errors.array().map((error) => error.msg);
-    res.status(400).json({
-      data: { error: errorMessages[0] },
-      success: false,
-    });
-    return;
-  }
-
   const { name, email, password } = req.body;
 
   try {
@@ -46,17 +34,6 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    let errorMessages = errors.array().map((error) => error.msg);
-    res.status(400).json({
-      data: { error: errorMessages[0] },
-      success: false,
-    });
-    return;
-  }
-
   const { email, password } = req.body;
 
   try {
@@ -85,7 +62,7 @@ export const login = async (req: Request, res: Response) => {
     const payload = {
       user: {
         id: user.id,
-        name: user.name,
+        role: user.role,
       },
     };
 

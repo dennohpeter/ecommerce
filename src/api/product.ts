@@ -1,8 +1,9 @@
 import { faker } from '@faker-js/faker';
 import { Request, Response, Router } from 'express';
-import { check, validationResult } from 'express-validator';
+import { check } from 'express-validator';
 import { v4 } from 'uuid';
 import { query } from '../db';
+import { validateAdmin, validateToken, validationResult } from '../middleware';
 
 const router = Router();
 
@@ -14,18 +15,8 @@ router.get(
     check('price_lte', 'Price must be a number').optional().isNumeric(),
     check('category_id', 'Invalid category_id').optional().isUUID(),
   ],
+  validationResult,
   async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      let errorMessages = errors.array().map((error) => error.msg);
-      res.status(400).json({
-        data: { error: errorMessages[0] },
-        success: false,
-      });
-      return;
-    }
-
     const { price_gte, price_lte, category_id } = req.query;
 
     let q = 'SELECT * FROM products WHERE 1 = 1';
@@ -57,14 +48,27 @@ router.get(
 );
 
 // get a single product
-router.get('/:id', async (req, res) => {
-  const { rows: product } = await query(
-    'SELECT * FROM products WHERE id = $1',
-    [req.params.id],
-  );
+router.get(
+  '/:id',
+  [check('id', 'Invalid product id').isUUID()],
+  validationResult,
+  async (req: Request, res: Response) => {
+    try {
+      const { rows: product } = await query(
+        'SELECT * FROM products WHERE id = $1',
+        [req.params.id],
+      );
 
-  res.json({ data: { product }, success: true });
-});
+      res.json({ data: { product }, success: true });
+    } catch (error) {
+      console.error({ error });
+      res.status(400).json({
+        data: { error: 'Failed to get product' },
+        success: false,
+      });
+    }
+  },
+);
 
 // create a new product
 // FIX: id + as slug(from title) + category_id instead of uuid v4
@@ -104,18 +108,10 @@ router.post(
       .isArray()
       .withMessage('Tags must be an array of strings'),
   ],
+  validationResult,
+  validateToken,
+  validateAdmin,
   async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      let errorMessages = errors.array().map((error) => error.msg);
-      res.status(400).json({
-        data: { error: errorMessages[0] },
-        success: false,
-      });
-      return;
-    }
-
     let {
       title,
       picture,
@@ -222,18 +218,10 @@ router.put(
       .isArray()
       .withMessage('Tags must be an array of strings'),
   ],
+  validationResult,
+  validateToken,
+  validateAdmin,
   async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      let errorMessages = errors.array().map((error) => error.msg);
-      res.status(400).json({
-        data: { error: errorMessages[0] },
-        success: false,
-      });
-      return;
-    }
-
     const { id } = req.params;
 
     let {
@@ -315,18 +303,10 @@ router.put(
 router.delete(
   '/:id',
   [check('id', 'Invalid product id').isUUID()],
+  validationResult,
+  validateToken,
+  validateAdmin,
   async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      let errorMessages = errors.array().map((error) => error.msg);
-      res.status(400).json({
-        data: { error: errorMessages[0] },
-        success: false,
-      });
-      return;
-    }
-
     const { id } = req.params;
 
     try {
