@@ -40,7 +40,7 @@ router.post(
   validationResult,
   validateToken,
   async (req: Request, res: Response) => {
-    const user_id = req.user.id;
+    const user_id = req.user!.id;
 
     const { product_id, content } = req.body;
 
@@ -96,7 +96,7 @@ router.delete(
   validationResult,
   validateToken,
   async (req: Request, res: Response) => {
-    const user_id = req.user.id;
+    const user_id = req.user!.id;
     const { id } = req.params;
 
     try {
