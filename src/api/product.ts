@@ -56,18 +56,24 @@ router.get(
     try {
       const { id: product_id } = req.params;
 
-      //  include product rating and comments
-      // const { rows: product } = await query(
-      //   'SELECT * FROM products WHERE id = $1
-      //   [product_id],
-      // );
+      //  include product rating and comments so that the response includes the product, rating, and comments
 
       const { rows: product } = await query(
-        'SELECT * FROM products JOIN rating ON products.id = rating.product_id JOIN comment ON products.id = comment.product_id WHERE products.id = $1',
+        'SELECT * FROM products WHERE id = $1',
         [product_id],
       );
 
-      res.json({ data: { product }, success: true });
+      const { rows: ratings } = await query(
+        'SELECT * FROM rating WHERE product_id = $1',
+        [product_id],
+      );
+
+      const { rows: comments } = await query(
+        'SELECT * FROM comment WHERE product_id = $1',
+        [product_id],
+      );
+
+      res.json({ data: { product, ratings, comments }, success: true });
     } catch (error) {
       console.error({ error });
       res.status(400).json({
