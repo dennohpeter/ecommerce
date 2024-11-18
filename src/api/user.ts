@@ -52,9 +52,11 @@ router.post(
 // delete your account
 router.delete('/', validateToken, async (req: Request, res: Response) => {
   try {
-    const { rows } = await query('DELETE FROM users WHERE id = $1', [
-      req.user!.id,
-    ]);
+    console.log(req.user);
+    const { rows } = await query(
+      'DELETE FROM users WHERE id = $1 RETURNING *',
+      [req.user!.id],
+    );
 
     if (rows.length === 0) {
       res.status(404).json({
