@@ -27,6 +27,7 @@ export const validateToken = (
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
+    console.error('No token provided');
     res
       .status(401)
       .json({ data: { error: 'Unauthorized request!' }, success: false });
@@ -36,6 +37,7 @@ export const validateToken = (
   try {
     verify(token, config.jwtSecret, (err, decoded: any) => {
       if (err || !decoded) {
+        console.error({ err, decoded });
         res.status(401).json({ msg: 'Unauthorized request!', success: false });
         return;
       }

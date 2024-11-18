@@ -54,9 +54,17 @@ router.get(
   validationResult,
   async (req: Request, res: Response) => {
     try {
+      const { id: product_id } = req.params;
+
+      //  include product rating and comments
+      // const { rows: product } = await query(
+      //   'SELECT * FROM products WHERE id = $1
+      //   [product_id],
+      // );
+
       const { rows: product } = await query(
-        'SELECT * FROM products WHERE id = $1',
-        [req.params.id],
+        'SELECT * FROM products JOIN rating ON products.id = rating.product_id JOIN comment ON products.id = comment.product_id WHERE products.id = $1',
+        [product_id],
       );
 
       res.json({ data: { product }, success: true });

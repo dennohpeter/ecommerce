@@ -9,13 +9,28 @@ export const register = async (req: Request, res: Response) => {
   const { name, email, password, role } = req.body;
 
   try {
+    // validate if user already exists
+    {
+      const { rows } = await query('SELECT * FROM users WHERE email = $1', [
+        email,
+      ]);
+
+      if (rows.length > 0) {
+        res.status(400).json({
+          data: { error: 'User already exists' },
+          success: false,
+        });
+        return;
+      }
+    }
+
     const id = uuidv4();
 
     const passwordHash = await hash(password);
 
     const { rows } = await query(
       'INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5)',
-      [id, name, email, passwordHash, role],
+      [id, name, email, passwordHash, role || 'user'],
     );
 
     console.log(rows);
