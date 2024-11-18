@@ -50,32 +50,28 @@ router.post(
 );
 
 // delete your account
-router.delete(
-  '/deleteAccount',
-  validateToken,
-  async (req: Request, res: Response) => {
-    try {
-      const { rows } = await query('DELETE FROM users WHERE id = $1', [
-        req.user!.id,
-      ]);
+router.delete('/', validateToken, async (req: Request, res: Response) => {
+  try {
+    const { rows } = await query('DELETE FROM users WHERE id = $1', [
+      req.user!.id,
+    ]);
 
-      if (rows.length === 0) {
-        res.status(404).json({
-          data: { error: 'Account no longer exists' },
-          success: false,
-        });
-        return;
-      }
-
-      res.json({ data: { msg: 'User deleted successfully' }, success: true });
-    } catch (error) {
-      console.error({ error });
-      res.status(500).json({
-        data: { error: 'Failed to delete user' },
+    if (rows.length === 0) {
+      res.status(404).json({
+        data: { error: 'Account no longer exists' },
         success: false,
       });
+      return;
     }
-  },
-);
+
+    res.json({ data: { msg: 'User deleted successfully' }, success: true });
+  } catch (error) {
+    console.error({ error });
+    res.status(500).json({
+      data: { error: 'Failed to delete user' },
+      success: false,
+    });
+  }
+});
 
 module.exports = router;
