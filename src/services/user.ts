@@ -6,7 +6,7 @@ import { config } from '../config';
 import { query } from '../db';
 
 export const register = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   try {
     const id = uuidv4();
@@ -14,8 +14,8 @@ export const register = async (req: Request, res: Response) => {
     const passwordHash = await hash(password);
 
     const { rows } = await query(
-      'INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4)',
-      [id, name, email, passwordHash],
+      'INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5)',
+      [id, name, email, passwordHash, role],
     );
 
     console.log(rows);
@@ -76,7 +76,7 @@ export const login = async (req: Request, res: Response) => {
       }
 
       res.json({
-        data: { token },
+        data: { token, role: user.role },
         success: true,
       });
     });

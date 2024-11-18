@@ -29,6 +29,11 @@ router.post(
         min: 6,
       })
       .withMessage('Password must be at least 6 characters'),
+
+    check('role')
+      .optional()
+      .isIn(['admin', 'user'])
+      .withMessage('Role must be either admin or user'),
   ],
   validationResult,
   register,
