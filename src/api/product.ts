@@ -52,20 +52,22 @@ router.get(
   '/:id',
   [check('id', 'Invalid product id').isUUID()],
   validationResult,
+  validateToken,
   async (req: Request, res: Response) => {
     try {
       const { id: product_id } = req.params;
 
-      //  include product rating and comments so that the response includes the product, rating, and comments
-
+      // get product and average rating
       const { rows: product } = await query(
-        'SELECT * FROM products WHERE id = $1',
+        'SELECT products.*, CAST(AVG(rating.value) AS DECIMAL(10, 2)) as rating FROM products LEFT JOIN rating ON products.id = rating.product_id WHERE products.id = $1 \
+        GROUP BY products.id',
         [product_id],
       );
 
+      // get user rating
       const { rows: ratings } = await query(
-        'SELECT * FROM rating WHERE product_id = $1',
-        [product_id],
+        'SELECT value FROM rating WHERE product_id = $1 AND user_id = $2 LIMIT 1',
+        [product_id, req.user!.id],
       );
 
       const { rows: comments } = await query(
@@ -73,7 +75,10 @@ router.get(
         [product_id],
       );
 
-      res.json({ data: { product, ratings, comments }, success: true });
+      res.json({
+        data: { product, user_rating: ratings[0]?.value || null, comments },
+        success: true,
+      });
     } catch (error) {
       console.error({ error });
       res.status(400).json({

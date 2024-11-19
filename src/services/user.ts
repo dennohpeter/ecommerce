@@ -91,7 +91,7 @@ export const login = async (req: Request, res: Response) => {
       }
 
       res.json({
-        data: { token, role: user.role },
+        data: { token, role: user.role, id: user.id },
         success: true,
       });
     });
